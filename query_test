@@ -4,94 +4,89 @@ output
         local exchange (GATHER, SINGLE, [])
             remotesource [1]
 
-Stage 1 (ExchangeOperator, FilterAndProjectOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, TaskOutputOperator, TopNOperator, WindowOperator):
+Stage 1 (ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, TaskOutputOperator, TopNOperator):
 topn(100)
-    project
-        window(partition=[ca_state], order=[expr_53 DESC NULLS LAST])
+    filter
+        aggregate(final)
             local exchange (GATHER, HASH, [])
                 remotesource [2]
 
-Stage 2 (DynamicFilterSourceOperator, ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, PartitionedOutputOperator):
-project
-    aggregate(final)
-        local exchange (GATHER, HASH, [])
-            aggregate(partial)
-                innerjoin
-                    innerjoin
-                        innerjoin
-                            remotesource [3]
-                            local exchange (GATHER, HASH, [])
-                                remotesource [12]
-                        local exchange (GATHER, HASH, [])
-                            remotesource [15]
-                    local exchange (GATHER, HASH, [])
-                        remotesource [16]
-
-Stage 3 (ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, PartitionedOutputOperator):
-filter
-    aggregate(final)
-        local exchange (GATHER, HASH, [])
-            remotesource [4]
-
-Stage 4 (ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, PartitionedOutputOperator):
+Stage 2 (DynamicFilterSourceOperator, ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, MarkDistinctOperator, PartitionedOutputOperator):
 aggregate(partial)
-    filterproject
-        leftjoin
-            remotesource [5]
+    markdistinct
+        local exchange (GATHER, HASH, [])
+            project
+                innerjoin
+                    remotesource [3]
+                    local exchange (GATHER, HASH, [])
+                        remotesource [15]
+
+Stage 3 (DynamicFilterSourceOperator, ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, PartitionedOutputOperator):
+innerjoin
+    innerjoin
+        innerjoin
+            filter
+                aggregate(final)
+                    local exchange (GATHER, HASH, [])
+                        aggregate(partial)
+                            innerjoin
+                                remotesource [4]
+                                aggregate(final)
+                                    local exchange (GATHER, HASH, [])
+                                        remotesource [9]
             local exchange (GATHER, HASH, [])
-                remotesource [11]
-
-Stage 5 (ExchangeOperator, FilterAndProjectOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, PartitionedOutputOperator):
-filter
-    leftjoin
-        remotesource [6]
+                remotesource [12]
         local exchange (GATHER, HASH, [])
-            remotesource [10]
-
-Stage 6 (ExchangeOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, PartitionedOutputOperator):
-leftjoin
-    leftjoin
-        remotesource [7]
-        local exchange (GATHER, HASH, [])
-            remotesource [8]
+            remotesource [13]
     local exchange (GATHER, HASH, [])
-        remotesource [9]
+        remotesource [14]
+
+Stage 4 (DynamicFilterSourceOperator, ExchangeOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, PartitionedOutputOperator):
+innerjoin
+    remotesource [5]
+    local exchange (GATHER, HASH, [])
+        remotesource [8]
+
+Stage 5 (DynamicFilterSourceOperator, ExchangeOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, PartitionedOutputOperator):
+innerjoin
+    remotesource [6]
+    local exchange (GATHER, HASH, [])
+        remotesource [7]
+
+Stage 6 (PartitionedOutputOperator, TableScanOperator):
+scanfilter
 
 Stage 7 (PartitionedOutputOperator, TableScanOperator):
 scanfilter
 
-Stage 8 (PartitionedOutputOperator, TableScanOperator):
+Stage 8 (PartitionedOutputOperator, ScanFilterAndProjectOperator):
 scanfilter
 
-Stage 9 (PartitionedOutputOperator, TableScanOperator):
-scanfilter
+Stage 9 (ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, PartitionedOutputOperator, WindowOperator):
+aggregate(partial)
+    filterproject
+        project
+            window(partition=[sr_store_sk])
+                local exchange (GATHER, HASH, [])
+                    remotesource [10]
 
-Stage 10 (PartitionedOutputOperator, TableScanOperator):
-scan TableName
+Stage 10 (ExchangeOperator, HashAggregationOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, PartitionedOutputOperator):
+aggregate(final)
+    local exchange (GATHER, HASH, [])
+        remotesource [11]
 
-Stage 11 (PartitionedOutputOperator, TableScanOperator):
-scan TableName
-
-Stage 12 (ExchangeOperator, FilterAndProjectOperator, HashAggregationOperator, HashBuilderOperator, LocalExchangeSinkOperator, LocalExchangeSourceOperator, LookupJoinOperator, LookupOuterOperator, PartitionedOutputOperator):
-filterproject
-    fulljoin
-        aggregate(final)
-            local exchange (GATHER, HASH, [])
-                remotesource [13]
-        aggregate(final)
-            local exchange (GATHER, HASH, [])
-                remotesource [14]
-
-Stage 13 (HashAggregationOperator, PartitionedOutputOperator, ScanFilterAndProjectOperator):
+Stage 11 (HashAggregationOperator, PartitionedOutputOperator, ScanFilterAndProjectOperator):
 aggregate(partial)
     scanfilterproject
 
-Stage 14 (HashAggregationOperator, PartitionedOutputOperator, ScanFilterAndProjectOperator):
-aggregate(partial)
-    scanfilterproject
+Stage 12 (PartitionedOutputOperator, TableScanOperator):
+scanfilter
+
+Stage 13 (PartitionedOutputOperator, ScanFilterAndProjectOperator):
+scanfilter
+
+Stage 14 (PartitionedOutputOperator, TableScanOperator):
+scanfilter
 
 Stage 15 (PartitionedOutputOperator, TableScanOperator):
-scanfilter
-
-Stage 16 (PartitionedOutputOperator, ScanFilterAndProjectOperator):
-scanfilter
+scan TableName
